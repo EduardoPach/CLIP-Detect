@@ -37,16 +37,42 @@ def square_tensor(tensor: torch.Tensor, w: int) -> torch.Tensor:
         .squeeze(-1)\
         .reshape(tensor.shape[0], tensor.shape[1], w, w)
 
+def set_device(device: str) -> torch.device:
+    if device:
+        return torch.device(device)
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("GPU available:", device)
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("MPS available")
+    else:
+        device = torch.device("cpu")
+        print("CPU available")
+
+    return device
+
 class CLIPDetect:
-    def __init__(self, model_id: str, patch_height: int, patch_width, window_size: int, stride: int=1, transforms: T.Compose | None=None) -> None:
+    def __init__(
+        self, 
+        model_id: str, 
+        patch_height: int, 
+        patch_width, 
+        window_size: int, 
+        stride: int=1, 
+        device: str | None=None,
+        transforms: T.Compose | None=None
+    ) -> None:
         self.model_id = model_id
         self.patch_height = patch_height
         self.patch_width = patch_width
         self.window_size = window_size
-        self.model = CLIPModel.from_pretrained(self.model_id)
-        self.processor = CLIPProcessor.from_pretrained(self.model_id)
         self.stride = stride
         self.transforms = transforms
+        self.device = set_device(device)
+        self.model = CLIPModel.from_pretrained(self.model_id).to(self.device)
+        self.processor = CLIPProcessor.from_pretrained(self.model_id)
 
     def __call__(self, labels: list[str], images: list[Image.Image]) -> CLIPDetection:
         patches_tensor = self._preprocess(images)
@@ -87,9 +113,9 @@ class CLIPDetect:
         torch.Tensor
             Tensor of scores with shape: (batch_size, num_images, num_labels)
         """
-        inputs = self.processor(text=labels, images=images, padding=True, return_tensors="pt")
+        inputs = self.processor(text=labels, images=images, padding=True, return_tensors="pt").to(self.device)
         outputs = self.model(**inputs)
-        return outputs.logits_per_image
+        return outputs.logits_per_image.cpu()
 
     def _preprocess(self, images: list[Image.Image]) -> torch.Tensor:
         """Transforms images into patches
