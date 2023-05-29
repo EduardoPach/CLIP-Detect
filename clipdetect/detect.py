@@ -37,7 +37,21 @@ def square_tensor(tensor: torch.Tensor, w: int) -> torch.Tensor:
         .squeeze(-1)\
         .reshape(tensor.shape[0], tensor.shape[1], w, w)
 
-def set_device(device: str) -> torch.device:
+def set_device(device: str | None) -> torch.device:
+    """Creates a torch.device object. In the case
+    that device is not specified, the device is chosen
+    automatically between GPU, MPS and CPU.
+
+    Parameters
+    ----------
+    device : str | None
+        Device to be used. If None, the device is chosen automatically
+
+    Returns
+    -------
+    torch.device
+        Device to be used
+    """
     if device:
         return torch.device(device)
     
