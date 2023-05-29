@@ -59,8 +59,8 @@ class CLIPDetect:
         scores = torch.zeros(B, L, NR, NC)
         runs = torch.zeros(NR, NC)
 
-        for row in range(0, NR - self.window_size, self.stride):
-            for col in range(0, NC - self.window_size, self.stride):
+        for row in range(0, NR - self.window_size + 1, self.stride):
+            for col in range(0, NC - self.window_size + 1, self.stride):
                 window = patches[:, row:row+self.window_size, col:col+self.window_size]
                 window = utils.reverse_patches(window)
                 score = self._get_score(labels, window) # (B, L)
@@ -105,7 +105,7 @@ class CLIPDetect:
             Tensor of patches with shape:
             (batch_size, , num_rows, num_cols, channels, patch_height, patch_width)
         """
-        if not self.transforms:
+        if self.transforms:
             images = [self.transforms(image) for image in images]
         else:
             t = T.ToTensor()
