@@ -146,6 +146,44 @@ def plot_patches(patches: torch.Tensor) -> None:
     plt.tight_layout()
     plt.show()
 
+#TODO so far will only work for a single Image-Label pair
+def get_bounding_box(importance_map: torch.Tensor, patch_h: int, patch_w: int, threshold: float=0.5) -> tuple[int, int, int, int]:
+    """Gets the bounding box based on the importance map
+
+    Parameters
+    ----------
+    importance_map : torch.Tensor
+        Tensor with shape (#imgs, #labels, #patch rows, #patch cols)
+    patch_h : int
+        Height of the patch
+    patch_w : int
+        Width of the patch
+    threshold : float, optional
+        Threshold to be used to determine the bounding box, by default 0.5
+
+    Returns
+    -------
+    tuple[int, int, int, int]
+        Bounding box coordinates (x_min, widht, height)
+    """
+    detection = torch.nonzero(importance_map > threshold)
+
+    x_min = detection[:, 3].min().item()
+    x_max = detection[:, 3].max().item() + 1
+
+    y_min = detection[:, 2].min().item()
+    y_max = detection[:, 2].max().item() + 1
+
+    x_min *= patch_w
+    x_max *= patch_w
+    y_min *= patch_h
+    y_max *= patch_h
+
+    width = x_max - x_min
+    height = y_max - y_min
+
+    return x_min, y_min, width, height
+
 def plot_importance_map(
     patches: torch.Tensor, 
     importance_map: torch.Tensor, 
@@ -172,6 +210,28 @@ def plot_importance_map(
     ax : plt.Axes | None, optional
         Matplotlib axes to plot map, by default None
     """
+    I, L, H, W = importance_map.shape
+    if not ax:
+        _, ax = plt.subplots()
+    
+    for _ in range(clip_rounds):
+        importance_map = clip_importance_map(importance_map)
+    
+    importance_map = normalize_importance_map(importance_map)
+    patches = patches_localization(patches, importance_map)
+
+    ax.imshow(reverse_patches(patches)[img_idx, label_idx].permute(1, 2, 0))
+    ax.axis("off")
+    plt.show()
+
+def plot_detection(
+    patches: torch.Tensor, 
+    importance_map: torch.Tensor, 
+    img_idx: int=0,
+    label_idx: int=0,
+    clip_rounds: int=1, 
+    ax: plt.Axes | None=None
+) -> None:
     I, L, H, W = importance_map.shape
     if not ax:
         _, ax = plt.subplots()
