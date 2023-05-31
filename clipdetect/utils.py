@@ -232,6 +232,22 @@ def plot_importance_map(
     plt.show()
 
 def plot_detection(image: torch.Tensor | Image.Image, bbox: BBox) -> None:
+    """Plot the image with the bounding box around the detection
+
+    Parameters
+    ----------
+    image : torch.Tensor | Image.Image
+        Image to be plotted with shape: (channels, height, width) 
+        in case of torch.Tensor or (width, height, channels) in 
+        case of PIL.Image.Image
+    bbox : BBox
+        BBox object with the coordinates of the bounding box
+
+    Raises
+    ------
+    ValueError
+        Raised if image is not a torch.Tensor or PIL.Image.Image
+    """
     if isinstance(image, torch.Tensor):
         image = image.permute(1, 2, 0).numpy()
     elif isinstance(image, Image.Image):
