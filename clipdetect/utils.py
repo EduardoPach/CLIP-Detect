@@ -54,7 +54,7 @@ def reverse_patches(patches: torch.Tensor) -> torch.Tensor:
     """
     if patches.ndim==7:
         I, L, NR, NC, C, PH, PW = patches.shape
-        images = patches.permute(0, 1, 4, 2, 5, 3, 6).reshape(I, C, NR*PH, NC*PW)
+        images = patches.permute(0, 1, 4, 2, 5, 3, 6).reshape(I, L, C, NR*PH, NC*PW)
     elif patches.ndim==6:
         I, NR, NC, C, PH, PW = patches.shape
         images = patches.permute(0, 3, 1, 4, 2, 5).reshape(I, C, NR*PH, NC*PW)
@@ -131,7 +131,7 @@ def patches_localization(patches: torch.Tensor, importance_map: torch.Tensor) ->
     Returns
     -------
     torch.Tensor
-        _description_
+        A tensor with shape (#imgs, #labels, #patch rows, #patch cols, #channels, patch height, patch width)
     """
     I, L, NR, NC = importance_map.shape
     _, _, _, C, PH, PW = patches.shape
