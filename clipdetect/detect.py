@@ -108,6 +108,8 @@ class CLIPDetect:
                 runs[row:row+self.window_size, col:col+self.window_size] += 1
         
         scores /= runs
+        scores = utils.clip_importance_map(scores)
+        scores = utils.normalize_importance_map(scores)
 
         return CLIPDetection(labels, scores)
 
