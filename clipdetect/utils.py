@@ -225,11 +225,6 @@ def plot_importance_map(
     I, L, H, W = importance_map.shape
     if not ax:
         _, ax = plt.subplots()
-    
-    for _ in range(clip_rounds):
-        importance_map = clip_importance_map(importance_map)
-    
-    importance_map = normalize_importance_map(importance_map)
     patches = patches_localization(patches, importance_map)
 
     ax.imshow(reverse_patches(patches)[img_idx, label_idx].permute(1, 2, 0))
