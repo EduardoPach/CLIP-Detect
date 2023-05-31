@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import torch
+from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.patches as pts
 
 @dataclass
 class BBox:
@@ -234,27 +236,24 @@ def plot_importance_map(
     ax.axis("off")
     plt.show()
 
-def plot_detection(
-    patches: torch.Tensor, 
-    importance_map: torch.Tensor, 
-    img_idx: int=0,
-    label_idx: int=0,
-    clip_rounds: int=1, 
-    ax: plt.Axes | None=None
-) -> None:
-    I, L, H, W = importance_map.shape
-    if not ax:
-        _, ax = plt.subplots()
-    
-    for _ in range(clip_rounds):
-        importance_map = clip_importance_map(importance_map)
-    
-    importance_map = normalize_importance_map(importance_map)
-    patches = patches_localization(patches, importance_map)
+def plot_detection(image: torch.Tensor | Image.Image, bbox: BBox) -> None:
+    if isinstance(image, torch.Tensor):
+        image = image.permute(1, 2, 0).numpy()
+    elif isinstance(image, Image.Image):
+        pass
+    else:
+        raise ValueError(f"image must be a torch.Tensor or PIL.Image.Image, but got {type(image)}")
 
-    ax.imshow(reverse_patches(patches)[img_idx, label_idx].permute(1, 2, 0))
+    fig, ax = plt.subplots()
+
+    ax.imshow(image)
     ax.axis("off")
-    plt.show()
+
+    rect = pts.Rectangle(
+        bbox.xy, bbox.width, bbox.height, facecolor="none",
+        linewidth=3, edgecolor="#FAFF00"
+    ) 
+    ax.add_patch(rect)
 
 
 
