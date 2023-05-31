@@ -13,6 +13,7 @@ import utils
 class CLIPDetection:
     label: list[str]
     importance_map: torch.Tensor
+    bbox: utils.BBox
 
 def square_tensor(tensor: torch.Tensor, w: int) -> torch.Tensor:
     """Takes a tensor with shapes (B, L) and returns tensor
@@ -88,11 +89,11 @@ class CLIPDetect:
         self.model = CLIPModel.from_pretrained(self.model_id).to(self.device)
         self.processor = CLIPProcessor.from_pretrained(self.model_id)
 
-    def __call__(self, labels: list[str], images: list[Image.Image]) -> CLIPDetection:
+    def __call__(self, labels: list[str], images: list[Image.Image], threshold: float=0.5) -> CLIPDetection:
         patches_tensor = self._preprocess(images)
-        return self._get_importance_map(labels, patches_tensor)
+        return self._get_importance_map(labels, patches_tensor, threshold)
 
-    def _get_importance_map(self, labels: list[str], patches: torch.Tensor) -> CLIPDetection:
+    def _get_importance_map(self, labels: list[str], patches: torch.Tensor, threshold: float) -> CLIPDetection:
         B, NR, NC, C, H, W = patches.shape
         L = len(labels)
 
@@ -110,8 +111,9 @@ class CLIPDetect:
         scores /= runs
         scores = utils.clip_importance_map(scores)
         scores = utils.normalize_importance_map(scores)
+        bbox = utils.get_bounding_box(scores, self.patch_height, self.patch_width, threshold)
 
-        return CLIPDetection(labels, scores)
+        return CLIPDetection(labels, scores, bbox)
 
     @torch.no_grad()
     def _get_score(self, labels: list[str], images: torch.Tensor) -> torch.Tensor:
