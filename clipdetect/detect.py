@@ -7,7 +7,7 @@ from PIL import Image
 import torchvision.transforms as T
 from transformers import CLIPModel, CLIPProcessor
 
-import utils
+from clipdetect import utils
 
 @dataclass(frozen=True)
 class CLIPDetection:
