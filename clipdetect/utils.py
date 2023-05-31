@@ -1,6 +1,15 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 import torch
 import matplotlib.pyplot as plt
 
+@dataclass
+class BBox:
+    xy: tuple[int, int]
+    width: int
+    height: int
 
 def create_patches(images: torch.Tensor, patch_height: int, patch_width: int) -> torch.Tensor:
     """Transforms images into patches
@@ -147,7 +156,7 @@ def plot_patches(patches: torch.Tensor) -> None:
     plt.show()
 
 #TODO so far will only work for a single Image-Label pair
-def get_bounding_box(importance_map: torch.Tensor, patch_h: int, patch_w: int, threshold: float=0.5) -> tuple[int, int, int, int]:
+def get_bounding_box(importance_map: torch.Tensor, patch_h: int, patch_w: int, threshold: float=0.5) -> BBox:
     """Gets the bounding box based on the importance map
 
     Parameters
@@ -163,7 +172,7 @@ def get_bounding_box(importance_map: torch.Tensor, patch_h: int, patch_w: int, t
 
     Returns
     -------
-    tuple[int, int, int, int]
+    BBox
         Bounding box coordinates (x_min, widht, height)
     """
     detection = torch.nonzero(importance_map > threshold)
@@ -181,8 +190,9 @@ def get_bounding_box(importance_map: torch.Tensor, patch_h: int, patch_w: int, t
 
     width = x_max - x_min
     height = y_max - y_min
+    xy = (x_min, y_min)
 
-    return x_min, y_min, width, height
+    return BBox(xy, width, height)
 
 def plot_importance_map(
     patches: torch.Tensor, 
