@@ -41,8 +41,15 @@ def reverse_patches(patches: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Tensor of images with shape: (batch_size, channels, height, width)
     """
-    I, NR, NC, C, PH, PW = patches.shape
-    images = patches.permute(0, 3, 1, 4, 2, 5).reshape(I, C, NR*PH, NC*PW)
+    if patches.ndim==7:
+        I, L, NR, NC, C, PH, PW = patches.shape
+        images = patches.permute(0, 1, 4, 2, 5, 3, 6).reshape(I, C, NR*PH, NC*PW)
+    elif patches.ndim==6:
+        I, NR, NC, C, PH, PW = patches.shape
+        images = patches.permute(0, 3, 1, 4, 2, 5).reshape(I, C, NR*PH, NC*PW)
+    else:
+        raise ValueError("Patches tensor must be 6 or 7 dimensional")
+    
     return images
 
 def normalize_importance_map(x: torch.Tensor) -> torch.Tensor:
@@ -122,15 +129,65 @@ def patches_localization(patches: torch.Tensor, importance_map: torch.Tensor) ->
     patches = patches * importance_map
     return patches.permute(0, 1, 5, 6, 4, 2, 3)
 
-def plot_relevance_map(patches: torch.Tensor, relevance_map: torch.Tensor, clip_rounds: int=2, ax: plt.Axes | None=None) -> None:
-    I, L, H, W = relevance_map.shape
+def plot_patches(patches: torch.Tensor) -> None:
+    """Plots image patches
+
+    Parameters
+    ----------
+    patches : torch.Tensor
+        A tensor of patches with shape: (#patch rows, #patch cols, #channels, patch height, patch width)
+    """
+    NR, NC, C, PH, PW = patches.shape
+    fig, axes = plt.subplots(NR, NC)
+    for row in range(NR):
+        for col in range(NC):
+            axes[row, col].imshow(patches[row, col].permute(1, 2, 0))
+            axes.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+def plot_importance_map(
+    patches: torch.Tensor, 
+    importance_map: torch.Tensor, 
+    img_idx: int=0,
+    label_idx: int=0,
+    clip_rounds: int=1, 
+    ax: plt.Axes | None=None
+) -> None:
+    """Plots a single Image-Label pair with the importance map
+
+    Parameters
+    ----------
+    patches : torch.Tensor
+        Patches tensor with shape (#imgs, #patch rows, #patch cols, #channels, patch height, patch width)
+    importance_map : torch.Tensor
+        Importance map tensor with shape (#imgs, #labels, #patch rows, #patch cols)
+    img_idx : int, optional
+        Index of image to plot, by default 0
+    label_idx : int, optional
+        Index of label to plot, by default 0
+    clip_rounds : int, optional
+        Number of times that importance map will be
+        clipped, by default 1
+    ax : plt.Axes | None, optional
+        Matplotlib axes to plot map, by default None
+    """
+    I, L, H, W = importance_map.shape
     if not ax:
         _, ax = plt.subplots()
     
     for _ in range(clip_rounds):
-        relevance_map = clip_importance_map(relevance_map)
+        importance_map = clip_importance_map(importance_map)
     
-    relevance_map = normalize_importance_map(relevance_map)
+    importance_map = normalize_importance_map(importance_map)
+    patches = patches_localization(patches, importance_map)
+
+    ax.imshow(reverse_patches(patches)[img_idx, label_idx].permute(1, 2, 0))
+    ax.axis("off")
+    plt.show()
+
+
+
 
 
     
