@@ -72,7 +72,7 @@ class CLIPDetect:
         L = len(labels)
 
         scores = torch.zeros(B, L, NR, NC)
-        runs = torch.zeros(NR, NC)
+        runs = torch.ones(NR, NC)
 
         for row in range(0, NR - self.window_size + 1, self.stride):
             for col in range(0, NC - self.window_size + 1, self.stride):
