@@ -69,7 +69,8 @@ def reverse_patches(patches: torch.Tensor) -> torch.Tensor:
     return images
 
 def normalize_importance_map(x: torch.Tensor) -> torch.Tensor:
-    """Normalizes the importance map tensor to 
+    """Normalizes the importance map tensor to have values
+    between 0 and 1.
 
     Parameters
     ----------
