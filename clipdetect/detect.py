@@ -69,6 +69,33 @@ def set_device(device: str | None) -> torch.device:
     return device
 
 class CLIPDetect:
+    """Wrapper around CLIPModel from HuggingFace to do object detection.
+    Input image is divided into patches and each patch is compared with
+    the labels. A sliding window is used to calculate the score for each
+    patch. The score is the average of the scores of all the patches in
+    the window.
+
+    Parameters
+    ----------
+    model_id : str
+        HuggingFace model id
+    patch_height : int
+        The height of the patches
+    patch_width : _type_
+        The width of the patches
+    window_size : int
+        Size of sliding window
+    stride : int, optional
+        How many patches should the window move
+        per slide, by default 1
+    device : str | None, optional
+        Available PyTorch devices: "cpu", "cuda", "mps", 
+        if None the device is chosen automatically, by default None
+    transforms : T.Compose | None, optional
+        A list of torchvision transformations to be applied to the images,
+        must contain ToTensor(), since images are expected to be
+        PIL.Image.Image, by default None.
+    """
     def __init__(
         self, 
         model_id: str, 
