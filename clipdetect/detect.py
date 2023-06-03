@@ -15,59 +15,6 @@ class CLIPDetection:
     importance_map: torch.Tensor
     bbox: utils.BBox
 
-def square_tensor(tensor: torch.Tensor, w: int) -> torch.Tensor:
-    """Takes a tensor with shapes (B, L) and returns tensor
-    with shape (B, L, W, W)
-
-    Parameters
-    ----------
-    tensor : torch.Tensor
-        Tensor with shape (B, L)
-    w : int
-        Block size
-
-    Returns
-    -------
-    torch.Tensor
-        Squared tensor with shape (B, L, W, W)
-    """
-    return tensor\
-        .unsqueeze(0)\
-        .permute(1, 2, 0)\
-        .repeat(1, 1, w*w)\
-        .squeeze(-1)\
-        .reshape(tensor.shape[0], tensor.shape[1], w, w)
-
-def set_device(device: str | None) -> torch.device:
-    """Creates a torch.device object. In the case
-    that device is not specified, the device is chosen
-    automatically between GPU, MPS and CPU.
-
-    Parameters
-    ----------
-    device : str | None
-        Device to be used. If None, the device is chosen automatically
-
-    Returns
-    -------
-    torch.device
-        Device to be used
-    """
-    if device:
-        return torch.device(device)
-    
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        print("GPU available:", device)
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-        print("MPS available")
-    else:
-        device = torch.device("cpu")
-        print("CPU available")
-
-    return device
-
 class CLIPDetect:
     """Wrapper around CLIPModel from HuggingFace to do object detection.
     Input image is divided into patches and each patch is compared with
@@ -112,7 +59,7 @@ class CLIPDetect:
         self.window_size = window_size
         self.stride = stride
         self.transforms = transforms
-        self.device = set_device(device)
+        self.device = utils.set_device(device)
         self.model = CLIPModel.from_pretrained(self.model_id).to(self.device)
         self.processor = CLIPProcessor.from_pretrained(self.model_id)
 
@@ -132,7 +79,7 @@ class CLIPDetect:
                 window = patches[:, row:row+self.window_size, col:col+self.window_size]
                 window = utils.reverse_patches(window)
                 score = self._get_score(labels, window) # (B, L)
-                scores[:, :, row:row+self.window_size, col:col+self.window_size] += square_tensor(score, self.window_size)
+                scores[:, :, row:row+self.window_size, col:col+self.window_size] += utils.square_tensor(score, self.window_size)
                 runs[row:row+self.window_size, col:col+self.window_size] += 1
         
         scores /= runs

@@ -14,12 +14,13 @@ class BBox:
     height: int
 
 def create_patches(images: torch.Tensor, patch_height: int, patch_width: int) -> torch.Tensor:
-    """Transforms images into patches
+    """Transforms images into patches. Advisable to use patch dimensions
+    that are multiples of the image dimensions.
 
     Parameters
     ----------
     images : torch.Tensor
-        Tensor of images with shape: (batch_size, channels, height, width)
+        Tensor of images with shape: (#imgs, #channels, height, width)
     patch_height : int
         Height of the patch
     patch_width : int
@@ -45,12 +46,16 @@ def reverse_patches(patches: torch.Tensor) -> torch.Tensor:
     ----------
     patches : torch.Tensor
         Tensor of patches with shape:
-        (#imgs, #patch rows, #patch cols, #channels, patch height, patch width)
+        (#imgs, #patch rows, #patch cols, #channels, patch height, patch width) or 
+        (#imgs, #labels, #patch rows, #patch cols, #channels, patch height, patch width)
 
     Returns
     -------
     torch.Tensor
-        Tensor of images with shape: (batch_size, channels, height, width)
+        Tensor of images with shape: 
+        (#imgs, #channels, height, width) or
+        (#imgs, #labels, #channels, height, width)
+        depending on the number of dimensions of the input tensor
     """
     if patches.ndim==7:
         I, L, NR, NC, C, PH, PW = patches.shape
@@ -140,6 +145,59 @@ def patches_localization(patches: torch.Tensor, importance_map: torch.Tensor) ->
     patches = patches * importance_map
     return patches.permute(0, 1, 5, 6, 4, 2, 3)
 
+def square_tensor(tensor: torch.Tensor, w: int) -> torch.Tensor:
+    """Takes a tensor with shapes (B, L) and returns tensor
+    with shape (B, L, W, W)
+
+    Parameters
+    ----------
+    tensor : torch.Tensor
+        Tensor with shape (B, L)
+    w : int
+        Block size
+
+    Returns
+    -------
+    torch.Tensor
+        Squared tensor with shape (B, L, W, W)
+    """
+    return tensor\
+        .unsqueeze(0)\
+        .permute(1, 2, 0)\
+        .repeat(1, 1, w*w)\
+        .squeeze(-1)\
+        .reshape(tensor.shape[0], tensor.shape[1], w, w)
+
+def set_device(device: str | None) -> torch.device:
+    """Creates a torch.device object. In the case
+    that device is not specified, the device is chosen
+    automatically between GPU, MPS and CPU.
+
+    Parameters
+    ----------
+    device : str | None
+        Device to be used. If None, the device is chosen automatically
+
+    Returns
+    -------
+    torch.device
+        Device to be used
+    """
+    if device:
+        return torch.device(device)
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("GPU available:", device)
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("MPS available")
+    else:
+        device = torch.device("cpu")
+        print("CPU available")
+
+    return device
+
 def plot_patches(patches: torch.Tensor) -> None:
     """Plots image patches
 
@@ -201,7 +259,6 @@ def plot_importance_map(
     importance_map: torch.Tensor, 
     img_idx: int=0,
     label_idx: int=0,
-    clip_rounds: int=1, 
     ax: plt.Axes | None=None
 ) -> None:
     """Plots a single Image-Label pair with the importance map
@@ -231,15 +288,13 @@ def plot_importance_map(
     ax.axis("off")
     plt.show()
 
-def plot_detection(image: torch.Tensor | Image.Image, bbox: BBox) -> None:
+def plot_detection(image: torch.Tensor, bbox: BBox) -> None:
     """Plot the image with the bounding box around the detection
 
     Parameters
     ----------
-    image : torch.Tensor | Image.Image
+    image : torch.Tensor
         Image to be plotted with shape: (channels, height, width) 
-        in case of torch.Tensor or (width, height, channels) in 
-        case of PIL.Image.Image
     bbox : BBox
         BBox object with the coordinates of the bounding box
 
@@ -248,14 +303,11 @@ def plot_detection(image: torch.Tensor | Image.Image, bbox: BBox) -> None:
     ValueError
         Raised if image is not a torch.Tensor or PIL.Image.Image
     """
-    if isinstance(image, torch.Tensor):
-        image = image.permute(1, 2, 0).numpy()
-    elif isinstance(image, Image.Image):
-        pass
-    else:
-        raise ValueError(f"image must be a torch.Tensor or PIL.Image.Image, but got {type(image)}")
+    if not isinstance(image, torch.Tensor):
+        raise ValueError(f"Image must be a torch.Tensor, but got {type(image)}")
 
-    fig, ax = plt.subplots()
+    image = image.permute(1, 2, 0).numpy()
+    _, ax = plt.subplots()
 
     ax.imshow(image)
     ax.axis("off")
