@@ -86,7 +86,7 @@ def normalize_importance_map(x: torch.Tensor) -> torch.Tensor:
     I, L, PH, PW = x.shape
     
     # Reshape the tensor to separate the H x W dimensions
-    reshaped_tensor = x.view(I, L, -1)
+    reshaped_tensor = x.reshape(I, L, -1)
     
     # Find the minimum and maximum values along the last dimension
     min_values, _ = torch.min(reshaped_tensor, dim=2, keepdim=True)
@@ -96,7 +96,7 @@ def normalize_importance_map(x: torch.Tensor) -> torch.Tensor:
     normalized_tensor = (reshaped_tensor - min_values) / (max_values - min_values + 1e-8)
     
     # Reshape the normalized tensor back to the original shape
-    return normalized_tensor.view(I, L, PH, PW)
+    return normalized_tensor.reshape(I, L, PH, PW)
 
 def clip_importance_map(x: torch.Tensor) -> torch.Tensor:
     """Clips the importance map tensor based on its mean
@@ -117,11 +117,11 @@ def clip_importance_map(x: torch.Tensor) -> torch.Tensor:
     I, L, PH, PW = x.shape
     
     # Reshape the tensor to separate the H x W dimensions
-    reshaped_tensor = x.view(I, L, -1)
+    reshaped_tensor = x.reshape(I, L, -1)
 
     clip_tensor = torch.clip(reshaped_tensor - reshaped_tensor.mean(dim=2, keepdim=True), min=0)
 
-    return clip_tensor.view(I, L, PH, PW)
+    return clip_tensor.reshape(I, L, PH, PW)
 
 
 def patches_localization(patches: torch.Tensor, importance_map: torch.Tensor) -> torch.Tensor:
@@ -141,7 +141,7 @@ def patches_localization(patches: torch.Tensor, importance_map: torch.Tensor) ->
     """
     I, L, NR, NC = importance_map.shape
     _, _, _, C, PH, PW = patches.shape
-    patches = patches.repeat(L, 1, 1, 1, 1, 1).view(I, L, NR, NC, C, PH, PW)
+    patches = patches.repeat(L, 1, 1, 1, 1, 1).reshape(I, L, NR, NC, C, PH, PW)
     patches = patches.permute(0, 1, 5, 6, 4, 2, 3)
     patches = patches * importance_map
     return patches.permute(0, 1, 5, 6, 4, 2, 3)
