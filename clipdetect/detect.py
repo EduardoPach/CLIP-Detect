@@ -98,13 +98,14 @@ class CLIPDetect:
         labels : list[str]
             A list of labels to be compared with the images
         images : torch.Tensor
-            Tensor of images with shape: (batch_size, channels, height, width)
+            Tensor of images with shape: (num_imgs, channels, height, width)
 
         Returns
         -------
         torch.Tensor
-            Tensor of scores with shape: (batch_size, num_images, num_labels)
+            Tensor of scores with shape: (num_imgs, num_images, num_labels)
         """
+        images = [images[i] for i in range(images.shape[0])] # list with tensors of shape (channels, height, width)
         inputs = self.processor(text=labels, images=images, padding=True, return_tensors="pt").to(self.device)
         outputs = self.model(**inputs)
         return outputs.logits_per_image.cpu()
@@ -121,7 +122,7 @@ class CLIPDetect:
         -------
         torch.Tensor
             Tensor of patches with shape:
-            (batch_size, , num_rows, num_cols, channels, patch_height, patch_width)
+            (num_imgs, , num_rows, num_cols, channels, patch_height, patch_width)
         """
         if self.transforms:
             images = [self.transforms(image) for image in images]
