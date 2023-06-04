@@ -212,7 +212,7 @@ def plot_patches(patches: torch.Tensor) -> None:
     for row in range(NR):
         for col in range(NC):
             axes[row, col].imshow(patches[row, col].permute(1, 2, 0))
-            axes.axis("off")
+            axes[row, col].axis("off")
     plt.tight_layout()
     plt.show()
 
